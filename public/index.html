@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReUp Pass — Design Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 80px;
+  }
+
+  h1 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 40px;
+  }
+
+  .passes {
+    display: flex;
+    gap: 60px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pass-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .pass-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  /* =========================================
+     APPLE WALLET PASS
+     ========================================= */
+  .apple-pass {
+    width: 340px;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+      0 25px 60px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(255,255,255,0.06);
+    position: relative;
+  }
+
+  .apple-pass::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  }
+
+  .ap-header {
+    padding: 24px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ap-logo {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .ap-logo-text {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+
+  .ap-logo-arrow {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 8px solid #ED1C24;
+    margin-left: 2px;
+    margin-top: -2px;
+  }
+
+  .ap-badge {
+    background: #ED1C24;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 5px 12px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .ap-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 20px 24px;
+  }
+
+  .ap-primary {
+    padding: 0 24px;
+  }
+
+  .ap-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #ED1C24;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+  }
+
+  .ap-value-lg {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+
+  .ap-row {
+    display: flex;
+    padding: 0 24px;
+    gap: 0;
+  }
+
+  .ap-field {
+    flex: 1;
+  }
+
+  .ap-value-md {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .ap-value-sm {
+    font-size: 15px;
+    font-weight: 500;
+    color: #e0e0e0;
+  }
+
+  .ap-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #28c840;
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: middle;
+    box-shadow: 0 0 6px rgba(40,200,64,0.5);
+  }
+
+  .ap-aux-label {
+    font-size: 9px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 4px;
+  }
+
+  /* Progress bar */
+  .ap-progress-wrap {
+    padding: 0 24px;
+  }
+
+  .ap-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .ap-progress-fill {
+    width: 83%;
+    height: 100%;
+    background: linear-gradient(90deg, #ED1C24, #ff4444);
+    border-radius: 2px;
+  }
+
+  .ap-progress-text {
+    font-size: 10px;
+    color: #555;
+    margin-top: 6px;
+  }
+
+  /* QR area */
+  .ap-qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 24px;
+  }
+
+  .ap-qr-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ap-qr-box svg {
+    width: 140px;
+    height: 140px;
+  }
+
+  .ap-qr-label {
+    font-size: 11px;
+    color: #555;
+    margin-top: 10px;
+    font-weight: 500;
+  }
+
+  /* Footer stats */
+  .ap-footer-stats {
+    display: flex;
+    padding: 0 24px 8px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    padding-top: 14px;
+  }
+
+  .ap-footer-stat {
+    flex: 1;
+    text-align: center;
+  }
+
+  .ap-footer-stat .label {
+    font-size: 8px;
+    font-weight: 600;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .ap-footer-stat .value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    margin-top: 2px;
+  }
+
+  .ap-footer {
+    text-align: center;
+    padding: 10px 24px 20px;
+  }
+
+  .ap-footer span {
+    font-size: 10px;
+    color: #333;
+    font-weight: 500;
+  }
+
+  /* =========================================
+     GOOGLE WALLET PASS
+     ========================================= */
+  .google-pass {
+    width: 340px;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0e0e0e 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+      0 25px 60px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(255,255,255,0.06);
+    position: relative;
+  }
+
+  .google-pass::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  }
+
+  .gp-header {
+    padding: 24px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .gp-type {
+    font-size: 11px;
+    color: #555;
+    font-weight: 500;
+  }
+
+  .gp-hero {
+    padding: 20px 24px 0;
+  }
+
+  .gp-name {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .gp-subtitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ED1C24;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .gp-rows {
+    padding: 20px 24px 0;
+  }
+
+  .gp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .gp-row-label {
+    font-size: 13px;
+    color: #777;
+    font-weight: 500;
+  }
+
+  .gp-row-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #eee;
+  }
+
+  .gp-progress-wrap {
+    padding: 4px 24px 0;
+  }
+
+  .gp-progress-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .gp-progress-fill {
+    width: 83%;
+    height: 100%;
+    background: linear-gradient(90deg, #ED1C24, #ff4444);
+    border-radius: 2px;
+  }
+
+  .gp-progress-text {
+    font-size: 10px;
+    color: #444;
+    margin-top: 6px;
+  }
+
+  .gp-qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+  }
+
+  .gp-qr-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .gp-qr-box svg {
+    width: 130px;
+    height: 130px;
+  }
+
+  .gp-qr-label {
+    font-size: 11px;
+    color: #555;
+    margin-top: 10px;
+    font-weight: 500;
+  }
+
+  .gp-footer {
+    text-align: center;
+    padding: 8px 24px 20px;
+  }
+
+  .gp-footer span {
+    font-size: 10px;
+    color: #333;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<h1>ReUp — Wallet Pass Design Preview</h1>
+
+<div class="passes">
+
+  <!-- ====== APPLE WALLET ====== -->
+  <div class="pass-wrapper">
+    <div class="pass-label">Apple Wallet</div>
+    <div class="apple-pass">
+
+      <div class="ap-header">
+        <div class="ap-logo">
+          <span class="ap-logo-text">Re</span>
+          <span class="ap-logo-text">Up</span>
+          <span class="ap-logo-arrow"></span>
+        </div>
+        <span class="ap-badge">Member</span>
+      </div>
+
+      <div class="ap-divider"></div>
+
+      <div class="ap-primary">
+        <div class="ap-label">Member</div>
+        <div class="ap-value-lg">Jane Doe</div>
+      </div>
+
+      <div class="ap-divider"></div>
+
+      <div class="ap-row">
+        <div class="ap-field">
+          <div class="ap-label">Tier</div>
+          <div class="ap-value-md">Gold</div>
+        </div>
+        <div class="ap-field">
+          <div class="ap-label">Points</div>
+          <div class="ap-value-md">1,250</div>
+        </div>
+        <div class="ap-field">
+          <div class="ap-label">Status</div>
+          <div class="ap-value-md">Active<span class="ap-status-dot"></span></div>
+        </div>
+      </div>
+
+      <div class="ap-divider"></div>
+
+      <div class="ap-row">
+        <div class="ap-field">
+          <div class="ap-aux-label">Member Since</div>
+          <div class="ap-value-sm">Feb 2026</div>
+        </div>
+        <div class="ap-field">
+          <div class="ap-aux-label">Member ID</div>
+          <div class="ap-value-sm">RU-00482</div>
+        </div>
+        <div class="ap-field">
+          <div class="ap-aux-label">Next Reward</div>
+          <div class="ap-value-sm">250 pts</div>
+        </div>
+      </div>
+
+      <div style="height: 16px"></div>
+
+      <div class="ap-progress-wrap">
+        <div class="ap-progress-bar"><div class="ap-progress-fill"></div></div>
+        <div class="ap-progress-text">1,250 / 1,500 pts to next reward</div>
+      </div>
+
+      <div class="ap-divider"></div>
+
+      <div class="ap-qr-section">
+        <div class="ap-qr-box">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" fill="white"/>
+            <!-- Finder patterns -->
+            <rect x="2" y="2" width="26" height="26" fill="black"/>
+            <rect x="5" y="5" width="20" height="20" fill="white"/>
+            <rect x="8" y="8" width="14" height="14" fill="black"/>
+            <rect x="72" y="2" width="26" height="26" fill="black"/>
+            <rect x="75" y="5" width="20" height="20" fill="white"/>
+            <rect x="78" y="8" width="14" height="14" fill="black"/>
+            <rect x="2" y="72" width="26" height="26" fill="black"/>
+            <rect x="5" y="75" width="20" height="20" fill="white"/>
+            <rect x="8" y="78" width="14" height="14" fill="black"/>
+            <!-- Data modules -->
+            <rect x="34" y="6" width="4" height="4" fill="black"/>
+            <rect x="42" y="6" width="4" height="4" fill="black"/>
+            <rect x="50" y="6" width="4" height="4" fill="black"/>
+            <rect x="58" y="6" width="4" height="4" fill="black"/>
+            <rect x="34" y="14" width="4" height="4" fill="black"/>
+            <rect x="46" y="14" width="4" height="4" fill="black"/>
+            <rect x="62" y="14" width="4" height="4" fill="black"/>
+            <rect x="34" y="22" width="4" height="4" fill="black"/>
+            <rect x="42" y="22" width="4" height="4" fill="black"/>
+            <rect x="54" y="22" width="4" height="4" fill="black"/>
+            <rect x="6" y="34" width="4" height="4" fill="black"/>
+            <rect x="14" y="34" width="4" height="4" fill="black"/>
+            <rect x="22" y="34" width="4" height="4" fill="black"/>
+            <rect x="34" y="34" width="4" height="4" fill="black"/>
+            <rect x="46" y="34" width="4" height="4" fill="black"/>
+            <rect x="58" y="34" width="4" height="4" fill="black"/>
+            <rect x="66" y="34" width="4" height="4" fill="black"/>
+            <rect x="78" y="34" width="4" height="4" fill="black"/>
+            <rect x="90" y="34" width="4" height="4" fill="black"/>
+            <rect x="6" y="42" width="4" height="4" fill="black"/>
+            <rect x="18" y="42" width="4" height="4" fill="black"/>
+            <rect x="34" y="42" width="4" height="4" fill="black"/>
+            <rect x="42" y="42" width="4" height="4" fill="black"/>
+            <rect x="54" y="42" width="4" height="4" fill="black"/>
+            <rect x="70" y="42" width="4" height="4" fill="black"/>
+            <rect x="82" y="42" width="4" height="4" fill="black"/>
+            <rect x="10" y="50" width="4" height="4" fill="black"/>
+            <rect x="22" y="50" width="4" height="4" fill="black"/>
+            <rect x="38" y="50" width="4" height="4" fill="black"/>
+            <rect x="50" y="50" width="4" height="4" fill="black"/>
+            <rect x="62" y="50" width="4" height="4" fill="black"/>
+            <rect x="74" y="50" width="4" height="4" fill="black"/>
+            <rect x="86" y="50" width="4" height="4" fill="black"/>
+            <rect x="6" y="58" width="4" height="4" fill="black"/>
+            <rect x="14" y="58" width="4" height="4" fill="black"/>
+            <rect x="26" y="58" width="4" height="4" fill="black"/>
+            <rect x="42" y="58" width="4" height="4" fill="black"/>
+            <rect x="54" y="58" width="4" height="4" fill="black"/>
+            <rect x="66" y="58" width="4" height="4" fill="black"/>
+            <rect x="78" y="58" width="4" height="4" fill="black"/>
+            <rect x="90" y="58" width="4" height="4" fill="black"/>
+            <rect x="34" y="66" width="4" height="4" fill="black"/>
+            <rect x="46" y="66" width="4" height="4" fill="black"/>
+            <rect x="58" y="66" width="4" height="4" fill="black"/>
+            <rect x="70" y="66" width="4" height="4" fill="black"/>
+            <rect x="86" y="66" width="4" height="4" fill="black"/>
+            <rect x="34" y="74" width="4" height="4" fill="black"/>
+            <rect x="42" y="74" width="4" height="4" fill="black"/>
+            <rect x="54" y="74" width="4" height="4" fill="black"/>
+            <rect x="66" y="74" width="4" height="4" fill="black"/>
+            <rect x="82" y="74" width="4" height="4" fill="black"/>
+            <rect x="34" y="82" width="4" height="4" fill="black"/>
+            <rect x="50" y="82" width="4" height="4" fill="black"/>
+            <rect x="62" y="82" width="4" height="4" fill="black"/>
+            <rect x="74" y="82" width="4" height="4" fill="black"/>
+            <rect x="90" y="82" width="4" height="4" fill="black"/>
+            <rect x="38" y="90" width="4" height="4" fill="black"/>
+            <rect x="46" y="90" width="4" height="4" fill="black"/>
+            <rect x="58" y="90" width="4" height="4" fill="black"/>
+            <rect x="70" y="90" width="4" height="4" fill="black"/>
+            <rect x="82" y="90" width="4" height="4" fill="black"/>
+          </svg>
+        </div>
+        <div class="ap-qr-label">Scan to earn &amp; redeem</div>
+      </div>
+
+      <div class="ap-footer-stats">
+        <div class="ap-footer-stat">
+          <div class="label">Last Visit</div>
+          <div class="value">Feb 5, 2026</div>
+        </div>
+        <div class="ap-footer-stat">
+          <div class="label">Total Visits</div>
+          <div class="value">47</div>
+        </div>
+        <div class="ap-footer-stat">
+          <div class="label">Saved</div>
+          <div class="value">$142.50</div>
+        </div>
+      </div>
+
+      <div class="ap-footer"><span>reup.com</span></div>
+    </div>
+  </div>
+
+  <!-- ====== GOOGLE WALLET ====== -->
+  <div class="pass-wrapper">
+    <div class="pass-label">Google Wallet</div>
+    <div class="google-pass">
+
+      <div class="gp-header">
+        <div class="ap-logo">
+          <span class="ap-logo-text" style="font-size:24px">Re</span>
+          <span class="ap-logo-text" style="font-size:24px">Up</span>
+          <span class="ap-logo-arrow" style="border-left-width:5px;border-right-width:5px;border-bottom-width:7px;"></span>
+        </div>
+        <span class="gp-type">Loyalty Card</span>
+      </div>
+
+      <div class="ap-divider"></div>
+
+      <div class="gp-hero">
+        <div class="gp-name">Jane Doe</div>
+        <div class="gp-subtitle">Gold Member</div>
+      </div>
+
+      <div class="gp-rows">
+        <div class="gp-row">
+          <span class="gp-row-label">Points</span>
+          <span class="gp-row-value">1,250</span>
+        </div>
+        <div class="gp-row">
+          <span class="gp-row-label">Member Since</span>
+          <span class="gp-row-value">February 2026</span>
+        </div>
+        <div class="gp-row">
+          <span class="gp-row-label">Member ID</span>
+          <span class="gp-row-value">RU-00482</span>
+        </div>
+        <div class="gp-row">
+          <span class="gp-row-label">Status</span>
+          <span class="gp-row-value">Active <span class="ap-status-dot"></span></span>
+        </div>
+        <div class="gp-row">
+          <span class="gp-row-label">Next Reward</span>
+          <span class="gp-row-value">250 pts away</span>
+        </div>
+      </div>
+
+      <div style="height: 12px"></div>
+
+      <div class="gp-progress-wrap">
+        <div class="gp-progress-bar"><div class="gp-progress-fill"></div></div>
+        <div class="gp-progress-text">1,250 / 1,500 pts</div>
+      </div>
+
+      <div class="ap-divider"></div>
+
+      <div class="gp-qr-section">
+        <div class="gp-qr-box">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" fill="white"/>
+            <rect x="2" y="2" width="26" height="26" fill="black"/>
+            <rect x="5" y="5" width="20" height="20" fill="white"/>
+            <rect x="8" y="8" width="14" height="14" fill="black"/>
+            <rect x="72" y="2" width="26" height="26" fill="black"/>
+            <rect x="75" y="5" width="20" height="20" fill="white"/>
+            <rect x="78" y="8" width="14" height="14" fill="black"/>
+            <rect x="2" y="72" width="26" height="26" fill="black"/>
+            <rect x="5" y="75" width="20" height="20" fill="white"/>
+            <rect x="8" y="78" width="14" height="14" fill="black"/>
+            <rect x="34" y="6" width="4" height="4" fill="black"/>
+            <rect x="42" y="6" width="4" height="4" fill="black"/>
+            <rect x="50" y="6" width="4" height="4" fill="black"/>
+            <rect x="58" y="6" width="4" height="4" fill="black"/>
+            <rect x="34" y="14" width="4" height="4" fill="black"/>
+            <rect x="46" y="14" width="4" height="4" fill="black"/>
+            <rect x="62" y="14" width="4" height="4" fill="black"/>
+            <rect x="34" y="22" width="4" height="4" fill="black"/>
+            <rect x="42" y="22" width="4" height="4" fill="black"/>
+            <rect x="54" y="22" width="4" height="4" fill="black"/>
+            <rect x="6" y="34" width="4" height="4" fill="black"/>
+            <rect x="14" y="34" width="4" height="4" fill="black"/>
+            <rect x="22" y="34" width="4" height="4" fill="black"/>
+            <rect x="34" y="34" width="4" height="4" fill="black"/>
+            <rect x="46" y="34" width="4" height="4" fill="black"/>
+            <rect x="58" y="34" width="4" height="4" fill="black"/>
+            <rect x="66" y="34" width="4" height="4" fill="black"/>
+            <rect x="78" y="34" width="4" height="4" fill="black"/>
+            <rect x="90" y="34" width="4" height="4" fill="black"/>
+            <rect x="6" y="42" width="4" height="4" fill="black"/>
+            <rect x="18" y="42" width="4" height="4" fill="black"/>
+            <rect x="34" y="42" width="4" height="4" fill="black"/>
+            <rect x="42" y="42" width="4" height="4" fill="black"/>
+            <rect x="54" y="42" width="4" height="4" fill="black"/>
+            <rect x="70" y="42" width="4" height="4" fill="black"/>
+            <rect x="82" y="42" width="4" height="4" fill="black"/>
+            <rect x="10" y="50" width="4" height="4" fill="black"/>
+            <rect x="22" y="50" width="4" height="4" fill="black"/>
+            <rect x="38" y="50" width="4" height="4" fill="black"/>
+            <rect x="50" y="50" width="4" height="4" fill="black"/>
+            <rect x="62" y="50" width="4" height="4" fill="black"/>
+            <rect x="74" y="50" width="4" height="4" fill="black"/>
+            <rect x="86" y="50" width="4" height="4" fill="black"/>
+            <rect x="34" y="66" width="4" height="4" fill="black"/>
+            <rect x="46" y="66" width="4" height="4" fill="black"/>
+            <rect x="58" y="66" width="4" height="4" fill="black"/>
+            <rect x="70" y="66" width="4" height="4" fill="black"/>
+            <rect x="86" y="66" width="4" height="4" fill="black"/>
+            <rect x="34" y="74" width="4" height="4" fill="black"/>
+            <rect x="42" y="74" width="4" height="4" fill="black"/>
+            <rect x="54" y="74" width="4" height="4" fill="black"/>
+            <rect x="66" y="74" width="4" height="4" fill="black"/>
+            <rect x="82" y="74" width="4" height="4" fill="black"/>
+            <rect x="34" y="82" width="4" height="4" fill="black"/>
+            <rect x="50" y="82" width="4" height="4" fill="black"/>
+            <rect x="62" y="82" width="4" height="4" fill="black"/>
+            <rect x="74" y="82" width="4" height="4" fill="black"/>
+            <rect x="90" y="82" width="4" height="4" fill="black"/>
+            <rect x="38" y="90" width="4" height="4" fill="black"/>
+            <rect x="46" y="90" width="4" height="4" fill="black"/>
+            <rect x="58" y="90" width="4" height="4" fill="black"/>
+            <rect x="70" y="90" width="4" height="4" fill="black"/>
+            <rect x="82" y="90" width="4" height="4" fill="black"/>
+          </svg>
+        </div>
+        <div class="gp-qr-label">Scan to earn &amp; redeem</div>
+      </div>
+
+      <div class="gp-footer"><span>reup.com</span></div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
