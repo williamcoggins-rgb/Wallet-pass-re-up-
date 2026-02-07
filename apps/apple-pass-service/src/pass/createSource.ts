@@ -40,7 +40,7 @@ const passJson = {
   teamIdentifier: config.teamIdentifier,
   organizationName: config.organizationName,
   description: config.description,
-  logoText: "Membership",
+  logoText: "ReUp",
 
   // Required for update web service; used as shared secret.
   authenticationToken: randomToken(),
@@ -65,9 +65,9 @@ const passJson = {
     }
   ],
 
-  backgroundColor: "rgb(20, 20, 20)",
+  backgroundColor: "rgb(0, 0, 0)",
   foregroundColor: "rgb(255, 255, 255)",
-  labelColor: "rgb(200, 200, 200)"
+  labelColor: "rgb(237, 28, 36)"
 };
 
 fs.writeFileSync(path.join(outDir, "pass.json"), JSON.stringify(passJson, null, 2));

@@ -27,7 +27,7 @@ store.upsertPass({
     teamIdentifier: config.teamIdentifier,
     organizationName: config.organizationName,
     description: config.description,
-    logoText: "Membership",
+    logoText: "ReUp",
     authenticationToken,
     webServiceURL: config.webServiceURL,
     generic: {

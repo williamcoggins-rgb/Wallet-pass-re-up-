@@ -4,8 +4,8 @@ export const config = {
   // Apple Pass identifiers (must match your Apple portal + cert)
   passTypeIdentifier: process.env.PASS_TYPE_IDENTIFIER ?? "pass.com.example.membership",
   teamIdentifier: process.env.TEAM_IDENTIFIER ?? "TEAMID1234",
-  organizationName: process.env.ORGANIZATION_NAME ?? "Example Org",
-  description: process.env.PASS_DESCRIPTION ?? "Example Pass",
+  organizationName: process.env.ORGANIZATION_NAME ?? "ReUp",
+  description: process.env.PASS_DESCRIPTION ?? "ReUp Pass",
 
   // Pass signing materials
   // - PASS_CERT: your Pass Type ID certificate (.pem)

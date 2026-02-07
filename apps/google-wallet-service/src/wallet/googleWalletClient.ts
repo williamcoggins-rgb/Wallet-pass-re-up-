@@ -73,12 +73,12 @@ export class GoogleWalletClient {
       classId,
       genericType: "GENERIC_TYPE_UNSPECIFIED",
       cardTitle: {
-        defaultValue: { language: "en-US", value: input.payload.title ?? "Pass" },
+        defaultValue: { language: "en-US", value: input.payload.title ?? "ReUp" },
       },
       header: {
         defaultValue: { language: "en-US", value: input.payload.header ?? "" },
       },
-      hexBackgroundColor: input.payload.backgroundColor ?? "#1a73e8",
+      hexBackgroundColor: input.payload.backgroundColor ?? "#000000",
       state: "ACTIVE",
       barcode: input.payload.barcode
         ? { type: "QR_CODE", value: input.payload.barcode }
