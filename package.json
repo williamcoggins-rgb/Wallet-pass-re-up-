@@ -1,0 +1,8 @@
+{
+  "name": "wallet-passes",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "devDependencies": {
+    "typescript": "^5.6.2"
+  }
+}
