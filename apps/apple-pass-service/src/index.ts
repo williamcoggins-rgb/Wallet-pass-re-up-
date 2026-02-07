@@ -2,67 +2,95 @@ import express from "express";
 import morgan from "morgan";
 import crypto from "node:crypto";
 import { config } from "./config.js";
+import { SqliteStore } from "./storage/sqliteStore.js";
 import { MemoryStore } from "./storage/memoryStore.js";
 import { passkitRoutes } from "./web/passkitRoutes.js";
 import { adminRoutes } from "./web/adminRoutes.js";
+import { requireAdminAuth } from "./web/authMiddleware.js";
+import { ApnsClient } from "./push/apns.js";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 app.use(morgan("dev"));
 
-const store = new MemoryStore();
+// Use SQLite for persistent storage, fall back to MemoryStore if better-sqlite3 isn't available.
+let store: SqliteStore | MemoryStore;
+try {
+  store = new SqliteStore();
+  console.log("Using SQLite persistent storage (data/passes.db)");
+} catch (err) {
+  console.warn("SQLite unavailable, falling back to in-memory store:", (err as Error).message);
+  store = new MemoryStore();
+}
 
-// Seed a demo pass record (so routes have something to work with).
-const serialNumber = "SERIAL-" + Date.now();
-const authenticationToken = crypto.randomBytes(16).toString("hex");
-
-store.upsertPass({
+// APNs client for sending push notifications to Apple devices.
+const apns = new ApnsClient({
+  keyPath: process.env.APNS_KEY_PATH ?? "./secrets/apns-auth-key.p8",
+  keyId: process.env.APNS_KEY_ID ?? "",
+  teamId: config.teamIdentifier,
   passTypeIdentifier: config.passTypeIdentifier,
-  serialNumber,
-  authenticationToken,
-  updatedAt: Date.now(),
-  passJson: {
-    formatVersion: 1,
+  production: process.env.NODE_ENV === "production",
+});
+
+// Seed a demo pass record if the database is empty.
+const existingPasses = store.listAllPasses();
+if (existingPasses.length === 0) {
+  const serialNumber = "SERIAL-" + Date.now();
+  const authenticationToken = crypto.randomBytes(16).toString("hex");
+
+  store.upsertPass({
     passTypeIdentifier: config.passTypeIdentifier,
     serialNumber,
-    teamIdentifier: config.teamIdentifier,
-    organizationName: config.organizationName,
-    description: config.description,
-    logoText: "ReUp",
     authenticationToken,
-    webServiceURL: config.webServiceURL,
-    generic: {
-      primaryFields: [{ key: "member", label: "Member", value: "Jane Doe" }],
-      secondaryFields: [{ key: "tier", label: "Tier", value: "Gold" }]
-    },
-    barcodes: [
-      {
-        format: "PKBarcodeFormatQR",
-        message: `member:${serialNumber}`,
-        messageEncoding: "iso-8859-1"
-      }
-    ],
-    // Geofencing: pass appears on lock screen when user is near these locations.
-    locations: config.defaultLocations,
-    maxDistance: 500
-  }
-});
+    updatedAt: Date.now(),
+    passJson: {
+      formatVersion: 1,
+      passTypeIdentifier: config.passTypeIdentifier,
+      serialNumber,
+      teamIdentifier: config.teamIdentifier,
+      organizationName: config.organizationName,
+      description: config.description,
+      logoText: "ReUp",
+      authenticationToken,
+      webServiceURL: config.webServiceURL,
+      generic: {
+        primaryFields: [{ key: "member", label: "Member", value: "Jane Doe" }],
+        secondaryFields: [{ key: "tier", label: "Tier", value: "Gold" }]
+      },
+      barcodes: [
+        {
+          format: "PKBarcodeFormatQR",
+          message: `member:${serialNumber}`,
+          messageEncoding: "iso-8859-1"
+        }
+      ],
+      locations: config.defaultLocations,
+      maxDistance: 500
+    }
+  });
+  console.log(`Seeded demo pass: ${serialNumber}`);
+} else {
+  console.log(`Database has ${existingPasses.length} existing pass(es)`);
+}
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// PassKit web service endpoints
+// PassKit web service endpoints (Apple device communication — no admin auth).
 app.use("/passes", passkitRoutes(store));
 
-// Admin endpoints for sending updates and sales specials
-app.use("/admin", adminRoutes(store));
+// Admin endpoints — protected by API key.
+app.use("/admin", requireAdminAuth, adminRoutes(store, apns));
 
-// Convenience endpoint to fetch the demo pass without device registration flow.
-app.get("/demo.pkpass", (req, res) => {
+// Convenience endpoint to list demo pass info.
+app.get("/demo.pkpass", (_req, res) => {
+  const passes = store.listAllPasses();
+  const demo = passes[0];
+  if (!demo) return res.json({ note: "No passes in database yet." });
   res.json({
     note: "Use PassKit endpoints under /passes for real device flows.",
-    passTypeIdentifier: config.passTypeIdentifier,
-    serialNumber,
-    authenticationToken,
+    passTypeIdentifier: demo.passTypeIdentifier,
+    serialNumber: demo.serialNumber,
+    authenticationToken: demo.authenticationToken,
     hint: "GET /passes/v1/passes/:passTypeIdentifier/:serialNumber with Authorization: ApplePass <token>"
   });
 });

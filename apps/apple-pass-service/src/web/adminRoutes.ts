@@ -1,16 +1,32 @@
 // Admin routes for sending updates and sales specials to all pass holders.
 // These are internal endpoints you call from your dashboard / CMS / marketing tool.
+// Protected by requireAdminAuth middleware (applied in index.ts).
 
 import { Router } from "express";
 import { MemoryStore } from "../storage/memoryStore.js";
+import { SqliteStore } from "../storage/sqliteStore.js";
+import { ApnsClient } from "../push/apns.js";
 import { config } from "../config.js";
 
-export function adminRoutes(store: MemoryStore) {
+type Store = MemoryStore | SqliteStore;
+
+export function adminRoutes(store: Store, apns?: ApnsClient) {
   const r = Router();
+
+  // Helper: send APNs push to all devices registered to a pass.
+  async function pushToDevices(serialNumber: string) {
+    const pushTokens = store.getPushTokensForPass({
+      passTypeIdentifier: config.passTypeIdentifier,
+      serialNumber,
+    });
+    if (pushTokens.length === 0 || !apns) return { pushed: 0, tokens: 0 };
+    const result = await apns.notifyAllDevices(pushTokens);
+    return { pushed: result.succeeded, tokens: pushTokens.length, errors: result.errors };
+  }
 
   // Update a single pass's fields (e.g., change points, tier, add promo message).
   // POST /admin/passes/:serialNumber/update
-  r.post("/passes/:serialNumber/update", (req, res) => {
+  r.post("/passes/:serialNumber/update", async (req, res) => {
     const { serialNumber } = req.params;
     const { fields } = req.body ?? {};
 
@@ -22,8 +38,6 @@ export function adminRoutes(store: MemoryStore) {
     if (!pass) return res.status(404).json({ error: "Pass not found" });
     if (!fields) return res.status(400).json({ error: "fields object required" });
 
-    // Merge updated fields into the pass JSON.
-    // Supports updating: primaryFields, secondaryFields, auxiliaryFields, backFields
     const passJson = { ...pass.passJson };
     const generic = { ...passJson.generic };
 
@@ -34,51 +48,40 @@ export function adminRoutes(store: MemoryStore) {
 
     passJson.generic = generic;
 
-    // Update the stored pass with new data and a new timestamp.
-    // The new timestamp tells Apple devices "this pass changed, re-download it."
     store.upsertPass({
       ...pass,
       passJson,
       updatedAt: Date.now(),
     });
 
-    // In production, you'd send an APNs push to all registered devices here
-    // so their phones know to re-fetch the updated pass.
-    const pushTokens = store.getPushTokensForPass({
-      passTypeIdentifier: config.passTypeIdentifier,
-      serialNumber,
-    });
+    // Send APNs push to notify devices to re-fetch the pass.
+    const pushResult = await pushToDevices(serialNumber);
 
     return res.json({
       status: "updated",
       serialNumber,
       updatedAt: Date.now(),
-      registeredDevices: pushTokens.length,
-      note: pushTokens.length > 0
-        ? "APNs push needed to notify devices (not yet wired)"
-        : "No devices registered yet — pass will update when next opened",
+      registeredDevices: pushResult.tokens,
+      pushed: pushResult.pushed,
     });
   });
 
   // Send a sales special / promo to ALL pass holders at once.
   // POST /admin/broadcast
-  r.post("/broadcast", (req, res) => {
+  r.post("/broadcast", async (req, res) => {
     const { message, promoCode, discount, expiresAt } = req.body ?? {};
 
     if (!message) return res.status(400).json({ error: "message required" });
 
     const allPasses = store.listAllPasses();
     let updated = 0;
+    let totalPushed = 0;
 
     for (const pass of allPasses) {
       const passJson = { ...pass.passJson };
       const generic = { ...passJson.generic };
 
-      // Add or update the back of the pass with the promo.
-      // "backFields" show up when the user flips the card over.
       const backFields = generic.backFields ?? [];
-
-      // Remove previous promo if exists, then add new one.
       const filtered = backFields.filter((f: any) => f.key !== "promo" && f.key !== "promoCode");
 
       filtered.push({
@@ -96,7 +99,6 @@ export function adminRoutes(store: MemoryStore) {
       }
 
       if (discount) {
-        // Update a secondary field to show the discount on the front
         generic.secondaryFields = generic.secondaryFields ?? [];
         const existingPromo = generic.secondaryFields.findIndex((f: any) => f.key === "offer");
         const offerField = {
@@ -115,34 +117,33 @@ export function adminRoutes(store: MemoryStore) {
       generic.backFields = filtered;
       passJson.generic = generic;
 
-      // Mark as updated so devices know to re-fetch.
       store.upsertPass({
         ...pass,
         passJson,
         updatedAt: Date.now(),
       });
 
+      // Send APNs push for each pass.
+      const pushResult = await pushToDevices(pass.serialNumber);
+      totalPushed += pushResult.pushed;
       updated++;
     }
 
-    // In production, send APNs push to all registered devices.
     return res.json({
       status: "broadcast_sent",
       passesUpdated: updated,
+      devicesPushed: totalPushed,
       message,
       promoCode: promoCode ?? null,
       discount: discount ?? null,
       expiresAt: expiresAt ?? null,
-      note: "APNs push needed to notify devices in real-time (not yet wired)",
     });
   });
 
   // ─── GEOFENCING ───────────────────────────────────────────
 
   // Add a geofence location to a pass.
-  // POST /admin/passes/:serialNumber/geofence
-  // Body: { latitude, longitude, relevantText, maxDistance? }
-  r.post("/passes/:serialNumber/geofence", (req, res) => {
+  r.post("/passes/:serialNumber/geofence", async (req, res) => {
     const { serialNumber } = req.params;
     const { latitude, longitude, relevantText, maxDistance } = req.body ?? {};
 
@@ -174,22 +175,18 @@ export function adminRoutes(store: MemoryStore) {
 
     store.upsertPass({ ...pass, passJson, updatedAt: Date.now() });
 
-    const pushTokens = store.getPushTokensForPass({
-      passTypeIdentifier: config.passTypeIdentifier,
-      serialNumber,
-    });
+    const pushResult = await pushToDevices(serialNumber);
 
     return res.json({
       status: "geofence_added",
       serialNumber,
       totalLocations: locations.length,
       newLocation: { latitude, longitude, relevantText },
-      registeredDevices: pushTokens.length,
+      devicesPushed: pushResult.pushed,
     });
   });
 
   // Remove a geofence location from a pass by index.
-  // DELETE /admin/passes/:serialNumber/geofence/:index
   r.delete("/passes/:serialNumber/geofence/:index", (req, res) => {
     const { serialNumber, index } = req.params;
     const idx = parseInt(index, 10);
@@ -222,7 +219,6 @@ export function adminRoutes(store: MemoryStore) {
   });
 
   // Get all geofence locations for a pass.
-  // GET /admin/passes/:serialNumber/geofence
   r.get("/passes/:serialNumber/geofence", (req, res) => {
     const { serialNumber } = req.params;
 
@@ -240,9 +236,8 @@ export function adminRoutes(store: MemoryStore) {
     });
   });
 
-  // Bulk-add a geofence location to ALL passes at once (e.g., new store opening).
-  // POST /admin/geofence/broadcast
-  r.post("/geofence/broadcast", (req, res) => {
+  // Bulk-add a geofence location to ALL passes.
+  r.post("/geofence/broadcast", async (req, res) => {
     const { latitude, longitude, relevantText, maxDistance } = req.body ?? {};
 
     if (latitude == null || longitude == null) {
@@ -254,6 +249,7 @@ export function adminRoutes(store: MemoryStore) {
 
     const allPasses = store.listAllPasses();
     let updated = 0;
+    let totalPushed = 0;
 
     for (const pass of allPasses) {
       const passJson = { ...pass.passJson };
@@ -269,21 +265,22 @@ export function adminRoutes(store: MemoryStore) {
       if (maxDistance) passJson.maxDistance = Number(maxDistance);
 
       store.upsertPass({ ...pass, passJson, updatedAt: Date.now() });
+
+      const pushResult = await pushToDevices(pass.serialNumber);
+      totalPushed += pushResult.pushed;
       updated++;
     }
 
     return res.json({
       status: "geofence_broadcast",
       passesUpdated: updated,
+      devicesPushed: totalPushed,
       location: { latitude, longitude, relevantText },
-      note: "APNs push needed to notify devices (not yet wired)",
     });
   });
 
   // ─── PASSES LIST ────────────────────────────────────────
 
-  // List all passes (admin overview).
-  // GET /admin/passes
   r.get("/passes", (_req, res) => {
     const passes = store.listAllPasses().map(p => ({
       serialNumber: p.serialNumber,

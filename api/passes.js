@@ -1,33 +1,25 @@
 // Vercel serverless function: list all passes (admin overview).
 // GET /api/passes
-//
-// In production this would query the Apple / Google backend services.
-// For now it returns a demo response showing the expected data shape.
+// Fetches from Apple backend and returns aggregated pass list.
 
-export default function handler(req, res) {
+import { callBackend, verifyAuth } from "./_lib/backend.js";
+
+export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed. Use GET." });
   }
 
-  // Demo response — in production, aggregate from Apple + Google backends.
-  return res.status(200).json({
-    passes: [
-      {
-        platform: "apple",
-        serialNumber: "SERIAL-demo",
-        member: "Jane Doe",
-        tier: "Gold",
-        updatedAt: Date.now(),
-        registeredDevices: 0,
-      },
-      {
-        platform: "google",
-        objectId: "ISSUER_ID.loyalty_demo",
-        member: "Jane Doe",
-        tier: "Gold",
-        updatedAt: Date.now(),
-      },
-    ],
-    note: "Connect this route to your Apple/Google backend services for live data.",
-  });
+  if (!verifyAuth(req)) {
+    return res.status(403).json({ error: "Invalid API key" });
+  }
+
+  const results = { apple: null, google: null };
+
+  // Fetch passes from Apple backend.
+  if (process.env.APPLE_SERVICE_URL) {
+    const apple = await callBackend(process.env.APPLE_SERVICE_URL, "/admin/passes", { method: "GET" });
+    results.apple = apple.data;
+  }
+
+  return res.status(200).json(results);
 }
