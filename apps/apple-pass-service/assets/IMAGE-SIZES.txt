@@ -1,0 +1,15 @@
+Place your ReUp logo/icon images here.
+
+Apple Wallet requires specific image sizes. Create these files from your logo:
+
+  REQUIRED:
+    icon.png      — 29 x 29 px   (shown in notifications & pass list)
+    icon@2x.png   — 58 x 58 px
+    icon@3x.png   — 87 x 87 px
+
+  RECOMMENDED:
+    logo.png      — up to 160 x 50 px  (shown on the pass face next to "ReUp")
+    logo@2x.png   — up to 320 x 100 px
+    logo@3x.png   — up to 480 x 150 px
+
+All files must be PNG format with transparent background if desired.

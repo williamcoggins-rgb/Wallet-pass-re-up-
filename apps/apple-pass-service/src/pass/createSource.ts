@@ -13,15 +13,23 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { config } from "../config.js";
 
+// Resolve the assets directory relative to this file's location.
+const assetsDir = path.resolve(
+  path.dirname(new URL(import.meta.url).pathname),
+  "../../assets"
+);
+
 function ensureDir(p: string) {
   fs.mkdirSync(p, { recursive: true });
 }
 
-function writePlaceholderPng(filePath: string) {
-  // Minimal 1x1 transparent PNG placeholder (base64).
-  const pngBase64 =
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/axr2ZkAAAAASUVORK5CYII=";
-  fs.writeFileSync(filePath, Buffer.from(pngBase64, "base64"));
+function copyAsset(filename: string, destPath: string) {
+  const src = path.join(assetsDir, filename);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, destPath);
+  } else {
+    console.warn(`Asset not found: ${src} — pass may be missing this image`);
+  }
 }
 
 function randomToken() {
@@ -72,11 +80,16 @@ const passJson = {
 
 fs.writeFileSync(path.join(outDir, "pass.json"), JSON.stringify(passJson, null, 2));
 
-// Required icon (your doc emphasizes icon is required and used in notifications etc.)
-writePlaceholderPng(path.join(outDir, "icon.png"));
-
-// Optional images commonly used.
-writePlaceholderPng(path.join(outDir, "logo.png"));
+// Copy brand images from assets/ into the pass bundle.
+// Apple requires icon.png; logo.png is shown on the pass face.
+// @2x and @3x variants are optional but recommended for Retina screens.
+const imageFiles = [
+  "icon.png", "icon@2x.png", "icon@3x.png",
+  "logo.png", "logo@2x.png", "logo@3x.png",
+];
+for (const file of imageFiles) {
+  copyAsset(file, path.join(outDir, file));
+}
 
 // Optional localization example (en.lproj/pass.strings)
 const enLproj = path.join(outDir, "en.lproj");

@@ -77,10 +77,21 @@ export function passkitRoutes(store: MemoryStore) {
 
     fs.writeFileSync(path.join(tmpDir, "pass.json"), JSON.stringify(pass.passJson, null, 2));
 
-    // Minimal required image; real impl uses your brand assets.
-    const pngBase64 =
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/axr2ZkAAAAASUVORK5CYII=";
-    fs.writeFileSync(path.join(tmpDir, "icon.png"), Buffer.from(pngBase64, "base64"));
+    // Copy brand images from the assets directory into the pass bundle.
+    const assetsDir = path.resolve(
+      path.dirname(new URL(import.meta.url).pathname),
+      "../../assets"
+    );
+    const imageFiles = [
+      "icon.png", "icon@2x.png", "icon@3x.png",
+      "logo.png", "logo@2x.png", "logo@3x.png",
+    ];
+    for (const file of imageFiles) {
+      const src = path.join(assetsDir, file);
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, path.join(tmpDir, file));
+      }
+    }
 
     // manifest + signature + zip
     const manifest = buildManifest(tmpDir);
