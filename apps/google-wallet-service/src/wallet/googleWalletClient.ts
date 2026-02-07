@@ -2,6 +2,12 @@ import { google, walletobjects_v1 } from "@googleapis/walletobjects";
 import { GoogleAuth } from "google-auth-library";
 import jwt from "jsonwebtoken";
 
+export type GeofenceLocation = {
+  latitude: number;
+  longitude: number;
+  relevantText?: string;
+};
+
 export type WalletPassInput = {
   userId: string;
   passKind: "receipt" | "insight" | "loyalty";
@@ -84,6 +90,11 @@ export class GoogleWalletClient {
         ? { type: "QR_CODE", value: input.payload.barcode }
         : undefined,
       textModulesData: input.payload.textModules ?? [],
+      // Geofencing: Google Wallet shows a notification when user is near these locations.
+      locations: (input.payload.locations as GeofenceLocation[] | undefined)?.map(loc => ({
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+      })),
     };
 
     try {
@@ -123,6 +134,23 @@ export class GoogleWalletClient {
     });
 
     return `https://pay.google.com/gp/v/save/${token}`;
+  }
+
+  // Update geofence locations on an existing pass object.
+  async updateLocations(passObjectId: string, locations: GeofenceLocation[]) {
+    const googleLocations = locations.map(loc => ({
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+    }));
+
+    await this.client.genericobject.patch({
+      resourceId: passObjectId,
+      requestBody: {
+        locations: googleLocations,
+      },
+    });
+
+    return { status: "locations_updated", passObjectId, locationCount: locations.length };
   }
 
   // Send a push notification to a user's saved pass via addMessage.

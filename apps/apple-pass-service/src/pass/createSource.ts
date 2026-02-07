@@ -75,7 +75,11 @@ const passJson = {
 
   backgroundColor: "rgb(0, 0, 0)",
   foregroundColor: "rgb(255, 255, 255)",
-  labelColor: "rgb(237, 28, 36)"
+  labelColor: "rgb(237, 28, 36)",
+
+  // Geofencing — pass appears on lock screen when user is within range.
+  locations: config.defaultLocations,
+  maxDistance: 500
 };
 
 fs.writeFileSync(path.join(outDir, "pass.json"), JSON.stringify(passJson, null, 2));

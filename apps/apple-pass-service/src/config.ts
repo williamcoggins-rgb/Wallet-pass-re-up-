@@ -22,4 +22,16 @@ export const config = {
 
   // For updates: PassKit requires HTTPS in production; keep that in mind.
   webServiceURL: process.env.WEB_SERVICE_URL ?? "https://example.com/passes",
+
+  // Default geofence locations.
+  // Apple shows the pass on the lock screen when the user is near one of these.
+  // Each entry: { latitude, longitude, relevantText, altitude? (optional) }
+  // maxDistance is in meters (Apple default ~100m if omitted).
+  defaultLocations: [
+    {
+      latitude: 40.7128,
+      longitude: -74.0060,
+      relevantText: "Welcome to ReUp! Show your pass for rewards.",
+    },
+  ],
 };

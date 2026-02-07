@@ -137,6 +137,151 @@ export function adminRoutes(store: MemoryStore) {
     });
   });
 
+  // ─── GEOFENCING ───────────────────────────────────────────
+
+  // Add a geofence location to a pass.
+  // POST /admin/passes/:serialNumber/geofence
+  // Body: { latitude, longitude, relevantText, maxDistance? }
+  r.post("/passes/:serialNumber/geofence", (req, res) => {
+    const { serialNumber } = req.params;
+    const { latitude, longitude, relevantText, maxDistance } = req.body ?? {};
+
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({ error: "latitude and longitude required" });
+    }
+    if (!relevantText) {
+      return res.status(400).json({ error: "relevantText required (shown on lock screen)" });
+    }
+
+    const pass = store.getPass({
+      passTypeIdentifier: config.passTypeIdentifier,
+      serialNumber,
+    });
+
+    if (!pass) return res.status(404).json({ error: "Pass not found" });
+
+    const passJson = { ...pass.passJson };
+    const locations = passJson.locations ?? [];
+
+    locations.push({
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      relevantText,
+    });
+
+    passJson.locations = locations;
+    if (maxDistance) passJson.maxDistance = Number(maxDistance);
+
+    store.upsertPass({ ...pass, passJson, updatedAt: Date.now() });
+
+    const pushTokens = store.getPushTokensForPass({
+      passTypeIdentifier: config.passTypeIdentifier,
+      serialNumber,
+    });
+
+    return res.json({
+      status: "geofence_added",
+      serialNumber,
+      totalLocations: locations.length,
+      newLocation: { latitude, longitude, relevantText },
+      registeredDevices: pushTokens.length,
+    });
+  });
+
+  // Remove a geofence location from a pass by index.
+  // DELETE /admin/passes/:serialNumber/geofence/:index
+  r.delete("/passes/:serialNumber/geofence/:index", (req, res) => {
+    const { serialNumber, index } = req.params;
+    const idx = parseInt(index, 10);
+
+    const pass = store.getPass({
+      passTypeIdentifier: config.passTypeIdentifier,
+      serialNumber,
+    });
+
+    if (!pass) return res.status(404).json({ error: "Pass not found" });
+
+    const passJson = { ...pass.passJson };
+    const locations = passJson.locations ?? [];
+
+    if (idx < 0 || idx >= locations.length) {
+      return res.status(400).json({ error: `Invalid index ${idx}. Pass has ${locations.length} locations.` });
+    }
+
+    const removed = locations.splice(idx, 1)[0];
+    passJson.locations = locations;
+
+    store.upsertPass({ ...pass, passJson, updatedAt: Date.now() });
+
+    return res.json({
+      status: "geofence_removed",
+      serialNumber,
+      removedLocation: removed,
+      remainingLocations: locations.length,
+    });
+  });
+
+  // Get all geofence locations for a pass.
+  // GET /admin/passes/:serialNumber/geofence
+  r.get("/passes/:serialNumber/geofence", (req, res) => {
+    const { serialNumber } = req.params;
+
+    const pass = store.getPass({
+      passTypeIdentifier: config.passTypeIdentifier,
+      serialNumber,
+    });
+
+    if (!pass) return res.status(404).json({ error: "Pass not found" });
+
+    return res.json({
+      serialNumber,
+      locations: pass.passJson.locations ?? [],
+      maxDistance: pass.passJson.maxDistance ?? null,
+    });
+  });
+
+  // Bulk-add a geofence location to ALL passes at once (e.g., new store opening).
+  // POST /admin/geofence/broadcast
+  r.post("/geofence/broadcast", (req, res) => {
+    const { latitude, longitude, relevantText, maxDistance } = req.body ?? {};
+
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({ error: "latitude and longitude required" });
+    }
+    if (!relevantText) {
+      return res.status(400).json({ error: "relevantText required" });
+    }
+
+    const allPasses = store.listAllPasses();
+    let updated = 0;
+
+    for (const pass of allPasses) {
+      const passJson = { ...pass.passJson };
+      const locations = passJson.locations ?? [];
+
+      locations.push({
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        relevantText,
+      });
+
+      passJson.locations = locations;
+      if (maxDistance) passJson.maxDistance = Number(maxDistance);
+
+      store.upsertPass({ ...pass, passJson, updatedAt: Date.now() });
+      updated++;
+    }
+
+    return res.json({
+      status: "geofence_broadcast",
+      passesUpdated: updated,
+      location: { latitude, longitude, relevantText },
+      note: "APNs push needed to notify devices (not yet wired)",
+    });
+  });
+
+  // ─── PASSES LIST ────────────────────────────────────────
+
   // List all passes (admin overview).
   // GET /admin/passes
   r.get("/passes", (_req, res) => {
@@ -145,6 +290,7 @@ export function adminRoutes(store: MemoryStore) {
       updatedAt: p.updatedAt,
       member: p.passJson?.generic?.primaryFields?.[0]?.value ?? "Unknown",
       tier: p.passJson?.generic?.secondaryFields?.find((f: any) => f.key === "tier")?.value ?? "None",
+      geofenceLocations: (p.passJson.locations ?? []).length,
       registeredDevices: store.getPushTokensForPass({
         passTypeIdentifier: p.passTypeIdentifier,
         serialNumber: p.serialNumber,

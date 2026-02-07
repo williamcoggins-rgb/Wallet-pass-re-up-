@@ -87,5 +87,65 @@ export function adminRoutes(client: GoogleWalletClient) {
     });
   });
 
+  // ─── GEOFENCING ───────────────────────────────────────────
+
+  // Update geofence locations on a single Google Wallet pass.
+  // POST /admin/passes/geofence
+  // Body: { passObjectId, locations: [{ latitude, longitude }] }
+  r.post("/passes/geofence", async (req, res) => {
+    const { passObjectId, locations } = req.body ?? {};
+
+    if (!passObjectId) return res.status(400).json({ error: "passObjectId required" });
+    if (!locations || !Array.isArray(locations) || locations.length === 0) {
+      return res.status(400).json({ error: "locations array required (each with latitude, longitude)" });
+    }
+
+    try {
+      const result = await client.updateLocations(passObjectId, locations);
+      return res.json(result);
+    } catch (err: any) {
+      console.error("geofence update error:", err);
+      return res.status(500).json({ error: err.message ?? "Internal error" });
+    }
+  });
+
+  // Bulk-update geofence locations on multiple passes.
+  // POST /admin/geofence/broadcast
+  // Body: { passObjectIds, locations: [{ latitude, longitude }] }
+  r.post("/geofence/broadcast", async (req, res) => {
+    const { passObjectIds, locations } = req.body ?? {};
+
+    if (!locations || !Array.isArray(locations) || locations.length === 0) {
+      return res.status(400).json({ error: "locations array required" });
+    }
+    if (!passObjectIds || !Array.isArray(passObjectIds) || passObjectIds.length === 0) {
+      return res.status(400).json({ error: "passObjectIds array required" });
+    }
+
+    const results: any[] = [];
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const objectId of passObjectIds) {
+      try {
+        await client.updateLocations(objectId, locations);
+        results.push({ objectId, status: "locations_updated" });
+        succeeded++;
+      } catch (err: any) {
+        results.push({ objectId, status: "failed", error: err.message });
+        failed++;
+      }
+    }
+
+    return res.json({
+      status: "geofence_broadcast",
+      total: passObjectIds.length,
+      succeeded,
+      failed,
+      locationCount: locations.length,
+      results,
+    });
+  });
+
   return r;
 }

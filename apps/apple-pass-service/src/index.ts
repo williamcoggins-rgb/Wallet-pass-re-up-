@@ -41,7 +41,10 @@ store.upsertPass({
         message: `member:${serialNumber}`,
         messageEncoding: "iso-8859-1"
       }
-    ]
+    ],
+    // Geofencing: pass appears on lock screen when user is near these locations.
+    locations: config.defaultLocations,
+    maxDistance: 500
   }
 });
 

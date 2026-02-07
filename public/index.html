@@ -498,6 +498,288 @@
     color: #333;
     font-weight: 500;
   }
+
+  /* =========================================
+     GEOFENCE SECTION
+     ========================================= */
+  .geofence-section {
+    width: 100%;
+    max-width: 760px;
+    margin-top: 60px;
+    animation: fadeIn 1s ease 0.8s both;
+  }
+
+  .geofence-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .geofence-card {
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+      0 25px 60px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(255,255,255,0.06);
+    padding: 30px;
+  }
+
+  .geofence-map {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    background: radial-gradient(ellipse at center, #111 0%, #0a0a0a 70%);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .geofence-map::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .geo-pin {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translate(-50%, -100%);
+  }
+
+  .geo-pin-icon {
+    width: 28px;
+    height: 36px;
+    position: relative;
+    animation: pinDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  .geo-pin:nth-child(1) .geo-pin-icon { animation-delay: 0.3s; }
+  .geo-pin:nth-child(2) .geo-pin-icon { animation-delay: 0.6s; }
+  .geo-pin:nth-child(3) .geo-pin-icon { animation-delay: 0.9s; }
+
+  @keyframes pinDrop {
+    from { opacity: 0; transform: translateY(-40px) scale(0.5); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .geo-pin-head {
+    width: 28px;
+    height: 28px;
+    background: #ED1C24;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(237,28,36,0.4);
+  }
+
+  .geo-pin-head::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border-radius: 50%;
+    transform: rotate(45deg);
+  }
+
+  .geo-pin-shadow {
+    width: 14px;
+    height: 4px;
+    background: rgba(237,28,36,0.3);
+    border-radius: 50%;
+    margin-top: 2px;
+  }
+
+  .geo-radius {
+    position: absolute;
+    border: 1.5px solid rgba(237,28,36,0.25);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: radiusPulse 3s ease-in-out infinite;
+  }
+
+  .geo-radius:nth-child(4) { animation-delay: 0s; }
+  .geo-radius:nth-child(5) { animation-delay: 1s; }
+  .geo-radius:nth-child(6) { animation-delay: 2s; }
+
+  @keyframes radiusPulse {
+    0%, 100% {
+      border-color: rgba(237,28,36,0.25);
+      background: rgba(237,28,36,0.03);
+    }
+    50% {
+      border-color: rgba(237,28,36,0.4);
+      background: rgba(237,28,36,0.06);
+    }
+  }
+
+  .geo-label {
+    position: absolute;
+    background: rgba(0,0,0,0.8);
+    border: 1px solid rgba(237,28,36,0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    animation: fadeIn 0.8s ease 1.2s both;
+  }
+
+  .geo-label-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #ED1C24;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .geo-label-text {
+    font-size: 10px;
+    color: #aaa;
+    margin-top: 2px;
+  }
+
+  .geofence-info {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .geo-stat {
+    flex: 1;
+    min-width: 140px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .geo-stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ED1C24;
+  }
+
+  .geo-stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .geo-feature-list {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .geo-feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .geo-feature-dot {
+    width: 8px;
+    height: 8px;
+    background: #ED1C24;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(237,28,36,0.4);
+  }
+
+  .geo-feature-text {
+    font-size: 13px;
+    color: #999;
+    font-weight: 500;
+  }
+
+  .geo-feature-text strong {
+    color: #ddd;
+  }
+
+  .geo-notification {
+    margin-top: 20px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: notifSlide 0.8s cubic-bezier(0.16, 1, 0.3, 1) 2s both;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  @keyframes notifSlide {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .geo-notif-icon {
+    width: 40px;
+    height: 40px;
+    background: #000;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .geo-notif-icon span {
+    font-size: 11px;
+    font-weight: 900;
+    color: #fff;
+  }
+
+  .geo-notif-content { flex: 1; }
+
+  .geo-notif-app {
+    font-size: 10px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .geo-notif-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-top: 2px;
+  }
+
+  .geo-notif-body {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 2px;
+  }
+
+  .geo-notif-time {
+    font-size: 11px;
+    color: #555;
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -798,6 +1080,107 @@
     </div>
   </div>
 
+</div>
+
+<!-- ====== GEOFENCING VISUALIZATION ====== -->
+<div class="geofence-section">
+  <div class="geofence-title">Geofencing — Location-Based Triggers</div>
+  <div class="geofence-card">
+
+    <!-- Map visualization -->
+    <div class="geofence-map">
+      <!-- Location pins -->
+      <div class="geo-pin" style="left: 30%; top: 55%;">
+        <div class="geo-pin-icon">
+          <div class="geo-pin-head"></div>
+          <div class="geo-pin-shadow"></div>
+        </div>
+      </div>
+      <div class="geo-pin" style="left: 60%; top: 40%;">
+        <div class="geo-pin-icon">
+          <div class="geo-pin-head"></div>
+          <div class="geo-pin-shadow"></div>
+        </div>
+      </div>
+      <div class="geo-pin" style="left: 78%; top: 65%;">
+        <div class="geo-pin-icon">
+          <div class="geo-pin-head"></div>
+          <div class="geo-pin-shadow"></div>
+        </div>
+      </div>
+
+      <!-- Radius rings -->
+      <div class="geo-radius" style="left: 30%; top: 48%; width: 120px; height: 120px;"></div>
+      <div class="geo-radius" style="left: 60%; top: 33%; width: 100px; height: 100px;"></div>
+      <div class="geo-radius" style="left: 78%; top: 58%; width: 90px; height: 90px;"></div>
+
+      <!-- Labels -->
+      <div class="geo-label" style="left: 8%; top: 12%;">
+        <div class="geo-label-title">ReUp Downtown</div>
+        <div class="geo-label-text">500m radius</div>
+      </div>
+      <div class="geo-label" style="right: 8%; top: 8%;">
+        <div class="geo-label-title">ReUp Midtown</div>
+        <div class="geo-label-text">500m radius</div>
+      </div>
+      <div class="geo-label" style="right: 4%; bottom: 10%;">
+        <div class="geo-label-title">ReUp East</div>
+        <div class="geo-label-text">500m radius</div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="geofence-info">
+      <div class="geo-stat">
+        <div class="geo-stat-value">3</div>
+        <div class="geo-stat-label">Active Zones</div>
+      </div>
+      <div class="geo-stat">
+        <div class="geo-stat-value">500m</div>
+        <div class="geo-stat-label">Trigger Radius</div>
+      </div>
+      <div class="geo-stat">
+        <div class="geo-stat-value">2</div>
+        <div class="geo-stat-label">Platforms</div>
+      </div>
+      <div class="geo-stat">
+        <div class="geo-stat-value">24/7</div>
+        <div class="geo-stat-label">Always On</div>
+      </div>
+    </div>
+
+    <!-- Feature list -->
+    <div class="geo-feature-list">
+      <div class="geo-feature">
+        <div class="geo-feature-dot"></div>
+        <div class="geo-feature-text"><strong>Lock screen pop-up</strong> — pass appears automatically when customer walks near your store</div>
+      </div>
+      <div class="geo-feature">
+        <div class="geo-feature-dot"></div>
+        <div class="geo-feature-text"><strong>Custom messages per location</strong> — "Welcome to ReUp Downtown! 20% off today"</div>
+      </div>
+      <div class="geo-feature">
+        <div class="geo-feature-dot"></div>
+        <div class="geo-feature-text"><strong>Works on both platforms</strong> — Apple Wallet + Google Wallet geofencing built in</div>
+      </div>
+      <div class="geo-feature">
+        <div class="geo-feature-dot"></div>
+        <div class="geo-feature-text"><strong>Bulk add new locations</strong> — opening a new store? Push the geofence to all passes instantly</div>
+      </div>
+    </div>
+
+    <!-- Phone notification mockup -->
+    <div class="geo-notification">
+      <div class="geo-notif-icon"><span>ReUp</span></div>
+      <div class="geo-notif-content">
+        <div class="geo-notif-app">Wallet</div>
+        <div class="geo-notif-title">ReUp nearby</div>
+        <div class="geo-notif-body">Welcome to ReUp! Show your pass for rewards.</div>
+      </div>
+      <div class="geo-notif-time">now</div>
+    </div>
+
+  </div>
 </div>
 
 <script>
