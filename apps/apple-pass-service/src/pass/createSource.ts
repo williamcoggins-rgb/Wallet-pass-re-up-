@@ -56,12 +56,14 @@ const passJson = {
     ]
   },
 
-  // Barcode example (optional, but common).
-  barcode: {
-    format: "PKBarcodeFormatQR",
-    message: "member:SERIAL",
-    messageEncoding: "iso-8859-1"
-  },
+  // Barcodes array (preferred over the deprecated singular "barcode" key).
+  barcodes: [
+    {
+      format: "PKBarcodeFormatQR",
+      message: "member:SERIAL",
+      messageEncoding: "iso-8859-1"
+    }
+  ],
 
   backgroundColor: "rgb(20, 20, 20)",
   foregroundColor: "rgb(255, 255, 255)",

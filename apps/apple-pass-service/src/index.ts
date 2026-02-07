@@ -1,5 +1,4 @@
 import express from "express";
-import bodyParser from "body-parser";
 import morgan from "morgan";
 import crypto from "node:crypto";
 import { config } from "./config.js";
@@ -7,7 +6,7 @@ import { MemoryStore } from "./storage/memoryStore.js";
 import { passkitRoutes } from "./web/passkitRoutes.js";
 
 const app = express();
-app.use(bodyParser.json({ limit: "2mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(morgan("dev"));
 
 const store = new MemoryStore();
@@ -34,7 +33,14 @@ store.upsertPass({
     generic: {
       primaryFields: [{ key: "member", label: "Member", value: "Jane Doe" }],
       secondaryFields: [{ key: "tier", label: "Tier", value: "Gold" }]
-    }
+    },
+    barcodes: [
+      {
+        format: "PKBarcodeFormatQR",
+        message: `member:${serialNumber}`,
+        messageEncoding: "iso-8859-1"
+      }
+    ]
   }
 });
 

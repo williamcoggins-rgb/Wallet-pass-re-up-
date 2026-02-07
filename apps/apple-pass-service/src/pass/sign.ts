@@ -20,10 +20,11 @@ export function signManifestPKCS7Detached(input: SignInput) {
   //
   // Command strategy:
   //   openssl smime -binary -sign -certfile WWDR.pem -signer pass-cert.pem -inkey pass-key.pem
-  //     -in manifest.json -out signature -outform DER -nodetach
+  //     -in manifest.json -out signature -outform DER
   //
-  // Note: Some implementations use -nodetach for DER packaging; verify with Wallet tests.
-  // If you see validation issues, try toggling -nodetach vs default detach behavior.
+  // Apple requires a *detached* PKCS#7 signature (the default smime behavior).
+  // Do NOT use -nodetach — that embeds the manifest data inside the signature,
+  // which causes Wallet to reject the pass.
   //
   const args = [
     "smime",
@@ -34,8 +35,7 @@ export function signManifestPKCS7Detached(input: SignInput) {
     "-inkey", input.passKeyPemPath,
     "-in", input.manifestPath,
     "-out", input.outputSignaturePath,
-    "-outform", "DER",
-    "-nodetach"
+    "-outform", "DER"
   ];
 
   const res = spawnSync("openssl", args, { cwd: input.passSourceDir });
