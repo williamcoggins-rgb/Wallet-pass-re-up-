@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { config } from "./config.js";
 import { MemoryStore } from "./storage/memoryStore.js";
 import { passkitRoutes } from "./web/passkitRoutes.js";
+import { adminRoutes } from "./web/adminRoutes.js";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -48,6 +49,9 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // PassKit web service endpoints
 app.use("/passes", passkitRoutes(store));
+
+// Admin endpoints for sending updates and sales specials
+app.use("/admin", adminRoutes(store));
 
 // Convenience endpoint to fetch the demo pass without device registration flow.
 app.get("/demo.pkpass", (req, res) => {

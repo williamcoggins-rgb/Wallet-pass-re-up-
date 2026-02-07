@@ -55,4 +55,22 @@ export class MemoryStore {
     }
     return serials;
   }
+
+  // List all stored passes (for admin/bulk operations).
+  listAllPasses(): PassRecord[] {
+    return Array.from(this.passes.values());
+  }
+
+  // Get push tokens for all devices registered to a specific pass.
+  getPushTokensForPass(passKey: PassKey): string[] {
+    const key = this.passKeyString(passKey);
+    const tokens: string[] = [];
+    for (const [deviceId, passKeys] of this.registrations) {
+      if (passKeys.has(key)) {
+        const device = this.devices.get(deviceId);
+        if (device) tokens.push(device.pushToken);
+      }
+    }
+    return tokens;
+  }
 }

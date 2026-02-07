@@ -2,6 +2,7 @@ import express from "express";
 import morgan from "morgan";
 import { GoogleWalletClient } from "./wallet/googleWalletClient.js";
 import { routes } from "./routes.js";
+import { adminRoutes } from "./adminRoutes.js";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -15,6 +16,9 @@ const client = new GoogleWalletClient({ issuerId, credentialsJson });
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 app.use("/", routes(client));
+
+// Admin endpoints for sending updates and sales specials
+app.use("/admin", adminRoutes(client));
 
 const port = Number(process.env.PORT ?? 8081);
 app.listen(port, () => console.log(`google-wallet-service listening on :${port}`));
