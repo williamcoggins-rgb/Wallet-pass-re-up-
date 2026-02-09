@@ -6,12 +6,15 @@
 //
 import { Router } from "express";
 import { MemoryStore } from "../storage/memoryStore.js";
+import { SqliteStore } from "../storage/sqliteStore.js";
 import { buildManifest, writeManifest } from "../pass/manifest.js";
 import { signManifestPKCS7Detached } from "../pass/sign.js";
 import { zipPkpass } from "../pass/zip.js";
 import { config } from "../config.js";
 import path from "node:path";
 import fs from "node:fs";
+
+type Store = MemoryStore | SqliteStore;
 
 function requireAuth(req: any, expectedToken: string) {
   const auth = req.headers["authorization"] as string | undefined;
@@ -22,7 +25,7 @@ function requireAuth(req: any, expectedToken: string) {
   return parts.length === 2 && parts[1] === expectedToken;
 }
 
-export function passkitRoutes(store: MemoryStore) {
+export function passkitRoutes(store: Store) {
   const r = Router();
 
   // 1) Register a device to receive push notifications for a pass

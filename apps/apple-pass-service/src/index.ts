@@ -6,8 +6,10 @@ import { SqliteStore } from "./storage/sqliteStore.js";
 import { MemoryStore } from "./storage/memoryStore.js";
 import { passkitRoutes } from "./web/passkitRoutes.js";
 import { adminRoutes } from "./web/adminRoutes.js";
+import { recoveryRoutes } from "./web/recoveryRoutes.js";
 import { requireAdminAuth } from "./web/authMiddleware.js";
 import { ApnsClient } from "./push/apns.js";
+import { SessionRecoveryService } from "./recovery/sessionRecovery.js";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -31,6 +33,13 @@ const apns = new ApnsClient({
   passTypeIdentifier: config.passTypeIdentifier,
   production: process.env.NODE_ENV === "production",
 });
+
+// Session recovery: resumes interrupted bulk operations and retries failed push notifications.
+const recovery = new SessionRecoveryService(store, apns, {
+  retryIntervalMs: Number(process.env.RECOVERY_RETRY_INTERVAL_MS ?? 30_000),
+  maxPushAttempts: Number(process.env.RECOVERY_MAX_PUSH_ATTEMPTS ?? 5),
+});
+recovery.start();
 
 // Seed a demo pass record if the database is empty.
 const existingPasses = store.listAllPasses();
@@ -79,7 +88,10 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/passes", passkitRoutes(store));
 
 // Admin endpoints — protected by API key.
-app.use("/admin", requireAdminAuth, adminRoutes(store, apns));
+app.use("/admin", requireAdminAuth, adminRoutes(store, apns, recovery));
+
+// Recovery management endpoints — protected by API key.
+app.use("/admin/recovery", requireAdminAuth, recoveryRoutes(store, recovery));
 
 // Convenience endpoint to list demo pass info.
 app.get("/demo.pkpass", (_req, res) => {

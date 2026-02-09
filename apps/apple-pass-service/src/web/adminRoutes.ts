@@ -6,22 +6,39 @@ import { Router } from "express";
 import { MemoryStore } from "../storage/memoryStore.js";
 import { SqliteStore } from "../storage/sqliteStore.js";
 import { ApnsClient } from "../push/apns.js";
+import { SessionRecoveryService } from "../recovery/sessionRecovery.js";
 import { config } from "../config.js";
 
 type Store = MemoryStore | SqliteStore;
 
-export function adminRoutes(store: Store, apns?: ApnsClient) {
+export function adminRoutes(store: Store, apns?: ApnsClient, recovery?: SessionRecoveryService) {
   const r = Router();
 
   // Helper: send APNs push to all devices registered to a pass.
+  // Failed pushes are enqueued for retry when recovery is available.
   async function pushToDevices(serialNumber: string) {
     const pushTokens = store.getPushTokensForPass({
       passTypeIdentifier: config.passTypeIdentifier,
       serialNumber,
     });
     if (pushTokens.length === 0 || !apns) return { pushed: 0, tokens: 0 };
-    const result = await apns.notifyAllDevices(pushTokens);
-    return { pushed: result.succeeded, tokens: pushTokens.length, errors: result.errors };
+
+    let succeeded = 0;
+    const errors: string[] = [];
+
+    for (const token of pushTokens) {
+      const result = await apns.sendEmptyPush(token);
+      if (result.success) {
+        succeeded++;
+      } else {
+        errors.push(`${token.slice(0, 8)}...: ${result.error}`);
+        if (recovery) {
+          recovery.enqueueFailed(token, serialNumber, result.error ?? "unknown");
+        }
+      }
+    }
+
+    return { pushed: succeeded, tokens: pushTokens.length, errors };
   }
 
   // Update a single pass's fields (e.g., change points, tier, add promo message).
@@ -67,6 +84,7 @@ export function adminRoutes(store: Store, apns?: ApnsClient) {
   });
 
   // Send a sales special / promo to ALL pass holders at once.
+  // Tracked as a recoverable operation so it can resume after a crash.
   // POST /admin/broadcast
   r.post("/broadcast", async (req, res) => {
     const { message, promoCode, discount, expiresAt } = req.body ?? {};
@@ -74,63 +92,86 @@ export function adminRoutes(store: Store, apns?: ApnsClient) {
     if (!message) return res.status(400).json({ error: "message required" });
 
     const allPasses = store.listAllPasses();
+
+    // Track this bulk operation for crash recovery.
+    const operationId = recovery
+      ? recovery.beginOperation("broadcast", { message, promoCode, discount, expiresAt }, allPasses.length)
+      : null;
+
     let updated = 0;
     let totalPushed = 0;
 
-    for (const pass of allPasses) {
-      const passJson = { ...pass.passJson };
-      const generic = { ...passJson.generic };
+    try {
+      for (const pass of allPasses) {
+        const passJson = { ...pass.passJson };
+        const generic = { ...passJson.generic };
 
-      const backFields = generic.backFields ?? [];
-      const filtered = backFields.filter((f: any) => f.key !== "promo" && f.key !== "promoCode");
+        const backFields = generic.backFields ?? [];
+        const filtered = backFields.filter((f: any) => f.key !== "promo" && f.key !== "promoCode");
 
-      filtered.push({
-        key: "promo",
-        label: "Special Offer",
-        value: message,
-      });
-
-      if (promoCode) {
         filtered.push({
-          key: "promoCode",
-          label: "Promo Code",
-          value: promoCode,
+          key: "promo",
+          label: "Special Offer",
+          value: message,
         });
-      }
 
-      if (discount) {
-        generic.secondaryFields = generic.secondaryFields ?? [];
-        const existingPromo = generic.secondaryFields.findIndex((f: any) => f.key === "offer");
-        const offerField = {
-          key: "offer",
-          label: "Offer",
-          value: discount,
-          ...(expiresAt ? { changeMessage: `Sale ends ${expiresAt}` } : {}),
-        };
-        if (existingPromo >= 0) {
-          generic.secondaryFields[existingPromo] = offerField;
-        } else {
-          generic.secondaryFields.push(offerField);
+        if (promoCode) {
+          filtered.push({
+            key: "promoCode",
+            label: "Promo Code",
+            value: promoCode,
+          });
+        }
+
+        if (discount) {
+          generic.secondaryFields = generic.secondaryFields ?? [];
+          const existingPromo = generic.secondaryFields.findIndex((f: any) => f.key === "offer");
+          const offerField = {
+            key: "offer",
+            label: "Offer",
+            value: discount,
+            ...(expiresAt ? { changeMessage: `Sale ends ${expiresAt}` } : {}),
+          };
+          if (existingPromo >= 0) {
+            generic.secondaryFields[existingPromo] = offerField;
+          } else {
+            generic.secondaryFields.push(offerField);
+          }
+        }
+
+        generic.backFields = filtered;
+        passJson.generic = generic;
+
+        store.upsertPass({
+          ...pass,
+          passJson,
+          updatedAt: Date.now(),
+        });
+
+        // Send APNs push for each pass.
+        const pushResult = await pushToDevices(pass.serialNumber);
+        totalPushed += pushResult.pushed;
+        updated++;
+
+        // Track progress so recovery knows where to resume.
+        if (recovery && operationId) {
+          recovery.markProgress(operationId, updated);
         }
       }
 
-      generic.backFields = filtered;
-      passJson.generic = generic;
-
-      store.upsertPass({
-        ...pass,
-        passJson,
-        updatedAt: Date.now(),
-      });
-
-      // Send APNs push for each pass.
-      const pushResult = await pushToDevices(pass.serialNumber);
-      totalPushed += pushResult.pushed;
-      updated++;
+      if (recovery && operationId) {
+        recovery.completeOperation(operationId);
+      }
+    } catch (err: any) {
+      if (recovery && operationId) {
+        recovery.failOperation(operationId, err.message);
+      }
+      throw err;
     }
 
     return res.json({
       status: "broadcast_sent",
+      operationId: operationId ?? undefined,
       passesUpdated: updated,
       devicesPushed: totalPushed,
       message,
@@ -237,6 +278,7 @@ export function adminRoutes(store: Store, apns?: ApnsClient) {
   });
 
   // Bulk-add a geofence location to ALL passes.
+  // Tracked as a recoverable operation.
   r.post("/geofence/broadcast", async (req, res) => {
     const { latitude, longitude, relevantText, maxDistance } = req.body ?? {};
 
@@ -248,31 +290,53 @@ export function adminRoutes(store: Store, apns?: ApnsClient) {
     }
 
     const allPasses = store.listAllPasses();
+
+    // Track this bulk operation for crash recovery.
+    const operationId = recovery
+      ? recovery.beginOperation("bulk_geofence", { latitude, longitude, relevantText, maxDistance }, allPasses.length)
+      : null;
+
     let updated = 0;
     let totalPushed = 0;
 
-    for (const pass of allPasses) {
-      const passJson = { ...pass.passJson };
-      const locations = passJson.locations ?? [];
+    try {
+      for (const pass of allPasses) {
+        const passJson = { ...pass.passJson };
+        const locations = passJson.locations ?? [];
 
-      locations.push({
-        latitude: Number(latitude),
-        longitude: Number(longitude),
-        relevantText,
-      });
+        locations.push({
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+          relevantText,
+        });
 
-      passJson.locations = locations;
-      if (maxDistance) passJson.maxDistance = Number(maxDistance);
+        passJson.locations = locations;
+        if (maxDistance) passJson.maxDistance = Number(maxDistance);
 
-      store.upsertPass({ ...pass, passJson, updatedAt: Date.now() });
+        store.upsertPass({ ...pass, passJson, updatedAt: Date.now() });
 
-      const pushResult = await pushToDevices(pass.serialNumber);
-      totalPushed += pushResult.pushed;
-      updated++;
+        const pushResult = await pushToDevices(pass.serialNumber);
+        totalPushed += pushResult.pushed;
+        updated++;
+
+        if (recovery && operationId) {
+          recovery.markProgress(operationId, updated);
+        }
+      }
+
+      if (recovery && operationId) {
+        recovery.completeOperation(operationId);
+      }
+    } catch (err: any) {
+      if (recovery && operationId) {
+        recovery.failOperation(operationId, err.message);
+      }
+      throw err;
     }
 
     return res.json({
       status: "geofence_broadcast",
+      operationId: operationId ?? undefined,
       passesUpdated: updated,
       devicesPushed: totalPushed,
       location: { latitude, longitude, relevantText },
