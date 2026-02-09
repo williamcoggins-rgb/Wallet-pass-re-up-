@@ -79,10 +79,10 @@ export class GoogleWalletClient {
       classId,
       genericType: "GENERIC_TYPE_UNSPECIFIED",
       cardTitle: {
-        defaultValue: { language: "en-US", value: input.payload.title ?? "ReUp" },
+        defaultValue: { language: "en-US", value: input.payload.title ?? "ReUp Barbershop" },
       },
       header: {
-        defaultValue: { language: "en-US", value: input.payload.header ?? "" },
+        defaultValue: { language: "en-US", value: input.payload.header ?? "Loyalty Pass" },
       },
       hexBackgroundColor: input.payload.backgroundColor ?? "#000000",
       state: "ACTIVE",

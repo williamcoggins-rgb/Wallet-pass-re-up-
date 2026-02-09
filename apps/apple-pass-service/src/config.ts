@@ -2,10 +2,10 @@ export const config = {
   port: Number(process.env.PORT ?? 8080),
 
   // Apple Pass identifiers (must match your Apple portal + cert)
-  passTypeIdentifier: process.env.PASS_TYPE_IDENTIFIER ?? "pass.com.example.membership",
+  passTypeIdentifier: process.env.PASS_TYPE_IDENTIFIER ?? "pass.com.reup.barbershop",
   teamIdentifier: process.env.TEAM_IDENTIFIER ?? "TEAMID1234",
-  organizationName: process.env.ORGANIZATION_NAME ?? "ReUp",
-  description: process.env.PASS_DESCRIPTION ?? "ReUp Pass",
+  organizationName: process.env.ORGANIZATION_NAME ?? "ReUp Barbershop",
+  description: process.env.PASS_DESCRIPTION ?? "ReUp Barbershop Loyalty Pass",
 
   // Pass signing materials
   // - PASS_CERT: your Pass Type ID certificate (.pem)
@@ -31,7 +31,7 @@ export const config = {
     {
       latitude: 40.7128,
       longitude: -74.0060,
-      relevantText: "Welcome to ReUp! Show your pass for rewards.",
+      relevantText: "You're near ReUp Barbershop! Walk in for a fresh cut.",
     },
   ],
 };

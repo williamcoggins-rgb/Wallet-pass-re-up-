@@ -39,28 +39,42 @@ function randomToken() {
 const outDir = process.argv[2] ?? "./out/MyMembership.pass";
 ensureDir(outDir);
 
-// Required top-level for a simple storeCard/generic style pass.
-// In production, match this to your pass type (storeCard, eventTicket, coupon, generic, boardingPass).
+// storeCard is the correct style for loyalty / membership passes (barbershop, retail, etc.).
+const serialNumber = "SERIAL-" + Date.now();
 const passJson = {
   formatVersion: 1,
   passTypeIdentifier: config.passTypeIdentifier,
-  serialNumber: "SERIAL-" + Date.now(),
+  serialNumber,
   teamIdentifier: config.teamIdentifier,
   organizationName: config.organizationName,
   description: config.description,
-  logoText: "ReUp",
+  logoText: "ReUp Barbershop",
 
   // Required for update web service; used as shared secret.
   authenticationToken: randomToken(),
   webServiceURL: config.webServiceURL,
 
-  // Pick one style key. Here: generic.
-  generic: {
+  // storeCard style — ideal for barbershop loyalty passes.
+  storeCard: {
+    headerFields: [
+      { key: "visits", label: "Visits", value: 0 }
+    ],
     primaryFields: [
-      { key: "member", label: "Member", value: "Jane Doe" }
+      { key: "member", label: "Client", value: "Walk-In" }
     ],
     secondaryFields: [
-      { key: "tier", label: "Tier", value: "Gold" }
+      { key: "tier", label: "Tier", value: "New" },
+      { key: "barber", label: "Barber", value: "Any" }
+    ],
+    auxiliaryFields: [
+      { key: "nextAppt", label: "Next Appointment", value: "Not Scheduled" },
+      { key: "points", label: "Points", value: "0" }
+    ],
+    backFields: [
+      { key: "memberSince", label: "Member Since", value: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) },
+      { key: "rewardsInfo", label: "Rewards Program", value: "Earn 1 point per visit. 10 points = 1 free haircut. VIP members get priority booking." },
+      { key: "hours", label: "Hours", value: "Mon-Fri 9AM-7PM | Sat 8AM-5PM | Sun Closed" },
+      { key: "contact", label: "Contact", value: "Call or text to book your appointment." }
     ]
   },
 
@@ -68,7 +82,7 @@ const passJson = {
   barcodes: [
     {
       format: "PKBarcodeFormatQR",
-      message: "member:SERIAL",
+      message: `barbershop:${serialNumber}`,
       messageEncoding: "iso-8859-1"
     }
   ],
@@ -77,7 +91,7 @@ const passJson = {
   foregroundColor: "rgb(255, 255, 255)",
   labelColor: "rgb(237, 28, 36)",
 
-  // Geofencing — pass appears on lock screen when user is within range.
+  // Geofencing — pass appears on lock screen when user is within the barbershop area.
   locations: config.defaultLocations,
   maxDistance: 500
 };
@@ -101,8 +115,12 @@ ensureDir(enLproj);
 fs.writeFileSync(
   path.join(enLproj, "pass.strings"),
   [
-    `"Member" = "Member";`,
-    `"Tier" = "Tier";`
+    `"Client" = "Client";`,
+    `"Tier" = "Tier";`,
+    `"Barber" = "Barber";`,
+    `"Visits" = "Visits";`,
+    `"Next Appointment" = "Next Appointment";`,
+    `"Points" = "Points";`
   ].join("\n"),
   { encoding: "utf16le" } // recommended for non-ASCII strings in pass.strings
 );
