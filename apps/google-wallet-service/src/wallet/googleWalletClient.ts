@@ -24,9 +24,11 @@ export class GoogleWalletClient {
   private client: walletobjects_v1.Walletobjects;
   private credentials: { client_email: string; private_key: string };
   private issuerId: string;
+  private defaultTitle: string;
 
-  constructor(opts: { issuerId: string; credentialsJson: string }) {
+  constructor(opts: { issuerId: string; credentialsJson: string; defaultTitle?: string }) {
     this.issuerId = opts.issuerId;
+    this.defaultTitle = opts.defaultTitle ?? "Wallet Pass";
     this.credentials = JSON.parse(opts.credentialsJson);
 
     const auth = new GoogleAuth({
@@ -79,7 +81,7 @@ export class GoogleWalletClient {
       classId,
       genericType: "GENERIC_TYPE_UNSPECIFIED",
       cardTitle: {
-        defaultValue: { language: "en-US", value: input.payload.title ?? "ReUp" },
+        defaultValue: { language: "en-US", value: input.payload.title ?? this.defaultTitle },
       },
       header: {
         defaultValue: { language: "en-US", value: input.payload.header ?? "" },

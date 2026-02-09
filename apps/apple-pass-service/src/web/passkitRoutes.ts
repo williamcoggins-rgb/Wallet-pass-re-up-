@@ -81,10 +81,9 @@ export function passkitRoutes(store: Store) {
     fs.writeFileSync(path.join(tmpDir, "pass.json"), JSON.stringify(pass.passJson, null, 2));
 
     // Copy brand images from the assets directory into the pass bundle.
-    const assetsDir = path.resolve(
-      path.dirname(new URL(import.meta.url).pathname),
-      "../../assets"
-    );
+    const assetsDir = config.assetsDir
+      ? path.resolve(config.assetsDir)
+      : path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../assets");
     const imageFiles = [
       "icon.png", "icon@2x.png", "icon@3x.png",
       "logo.png", "logo@2x.png", "logo@3x.png",

@@ -13,7 +13,8 @@ app.use(morgan("dev"));
 const credentialsJson = process.env.GW_CREDENTIALS_JSON ?? "{}";
 const issuerId = process.env.GW_ISSUER_ID ?? "ISSUER_ID";
 
-const client = new GoogleWalletClient({ issuerId, credentialsJson });
+const defaultTitle = process.env.GW_DEFAULT_TITLE ?? process.env.ORGANIZATION_NAME ?? "Wallet Pass";
+const client = new GoogleWalletClient({ issuerId, credentialsJson, defaultTitle });
 
 // Retry queue for failed Google Wallet API calls (notifications, geofence updates).
 const retryQueue = new RetryQueue({

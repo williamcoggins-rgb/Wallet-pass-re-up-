@@ -59,7 +59,7 @@ if (existingPasses.length === 0) {
       teamIdentifier: config.teamIdentifier,
       organizationName: config.organizationName,
       description: config.description,
-      logoText: "ReUp",
+      logoText: config.logoText,
       authenticationToken,
       webServiceURL: config.webServiceURL,
       generic: {
