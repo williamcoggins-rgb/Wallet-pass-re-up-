@@ -6,12 +6,15 @@
 //
 import { Router } from "express";
 import { MemoryStore } from "../storage/memoryStore.js";
+import { SqliteStore } from "../storage/sqliteStore.js";
 import { buildManifest, writeManifest } from "../pass/manifest.js";
 import { signManifestPKCS7Detached } from "../pass/sign.js";
 import { zipPkpass } from "../pass/zip.js";
 import { config } from "../config.js";
 import path from "node:path";
 import fs from "node:fs";
+
+type Store = MemoryStore | SqliteStore;
 
 function requireAuth(req: any, expectedToken: string) {
   const auth = req.headers["authorization"] as string | undefined;
@@ -22,7 +25,7 @@ function requireAuth(req: any, expectedToken: string) {
   return parts.length === 2 && parts[1] === expectedToken;
 }
 
-export function passkitRoutes(store: MemoryStore) {
+export function passkitRoutes(store: Store) {
   const r = Router();
 
   // 1) Register a device to receive push notifications for a pass
@@ -78,10 +81,9 @@ export function passkitRoutes(store: MemoryStore) {
     fs.writeFileSync(path.join(tmpDir, "pass.json"), JSON.stringify(pass.passJson, null, 2));
 
     // Copy brand images from the assets directory into the pass bundle.
-    const assetsDir = path.resolve(
-      path.dirname(new URL(import.meta.url).pathname),
-      "../../assets"
-    );
+    const assetsDir = config.assetsDir
+      ? path.resolve(config.assetsDir)
+      : path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../assets");
     const imageFiles = [
       "icon.png", "icon@2x.png", "icon@3x.png",
       "logo.png", "logo@2x.png", "logo@3x.png",

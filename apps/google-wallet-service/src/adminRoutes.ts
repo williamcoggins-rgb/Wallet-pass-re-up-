@@ -1,10 +1,12 @@
 // Admin routes for sending updates and sales specials to Google Wallet pass holders.
 // These are internal endpoints you call from your dashboard / CMS / marketing tool.
+// Failed notifications and location updates are enqueued for automatic retry.
 
 import { Router } from "express";
 import { GoogleWalletClient } from "./wallet/googleWalletClient.js";
+import { RetryQueue } from "./recovery/retryQueue.js";
 
-export function adminRoutes(client: GoogleWalletClient) {
+export function adminRoutes(client: GoogleWalletClient, retryQueue?: RetryQueue) {
   const r = Router();
 
   // Update a single pass (patch fields and optionally notify).
@@ -25,7 +27,18 @@ export function adminRoutes(client: GoogleWalletClient) {
 
       // Optionally send a notification to the user's device.
       if (notify && typeof notify === "string") {
-        await client.notifyUser(passObjectId, notify);
+        try {
+          await client.notifyUser(passObjectId, notify);
+        } catch (notifyErr: any) {
+          // Enqueue notification for retry if it failed.
+          if (retryQueue) {
+            retryQueue.enqueue(
+              () => client.notifyUser(passObjectId, notify).then(() => {}),
+              `notify ${passObjectId}`,
+              notifyErr.message,
+            );
+          }
+        }
       }
 
       return res.json({
@@ -40,6 +53,7 @@ export function adminRoutes(client: GoogleWalletClient) {
   });
 
   // Broadcast a promo / sales special to a list of pass holders.
+  // Failed notifications are automatically enqueued for retry.
   // POST /admin/broadcast
   r.post("/broadcast", async (req, res) => {
     const { passObjectIds, message, promoCode, discount, expiresAt } = req.body ?? {};
@@ -52,6 +66,7 @@ export function adminRoutes(client: GoogleWalletClient) {
     const results: any[] = [];
     let succeeded = 0;
     let failed = 0;
+    let enqueued = 0;
 
     for (const objectId of passObjectIds) {
       try {
@@ -71,6 +86,25 @@ export function adminRoutes(client: GoogleWalletClient) {
       } catch (err: any) {
         results.push({ objectId, status: "failed", error: err.message });
         failed++;
+
+        // Enqueue for automatic retry.
+        if (retryQueue) {
+          const notifyBody = [
+            message,
+            promoCode ? `Code: ${promoCode}` : null,
+            discount ? `Discount: ${discount}` : null,
+            expiresAt ? `Expires: ${expiresAt}` : null,
+          ]
+            .filter(Boolean)
+            .join(" | ");
+
+          retryQueue.enqueue(
+            () => client.notifyUser(objectId, notifyBody).then(() => {}),
+            `broadcast notify ${objectId}`,
+            err.message,
+          );
+          enqueued++;
+        }
       }
     }
 
@@ -79,6 +113,7 @@ export function adminRoutes(client: GoogleWalletClient) {
       total: passObjectIds.length,
       succeeded,
       failed,
+      enqueuedForRetry: enqueued,
       message,
       promoCode: promoCode ?? null,
       discount: discount ?? null,
@@ -110,6 +145,7 @@ export function adminRoutes(client: GoogleWalletClient) {
   });
 
   // Bulk-update geofence locations on multiple passes.
+  // Failed updates are enqueued for automatic retry.
   // POST /admin/geofence/broadcast
   // Body: { passObjectIds, locations: [{ latitude, longitude }] }
   r.post("/geofence/broadcast", async (req, res) => {
@@ -125,6 +161,7 @@ export function adminRoutes(client: GoogleWalletClient) {
     const results: any[] = [];
     let succeeded = 0;
     let failed = 0;
+    let enqueued = 0;
 
     for (const objectId of passObjectIds) {
       try {
@@ -134,6 +171,15 @@ export function adminRoutes(client: GoogleWalletClient) {
       } catch (err: any) {
         results.push({ objectId, status: "failed", error: err.message });
         failed++;
+
+        if (retryQueue) {
+          retryQueue.enqueue(
+            () => client.updateLocations(objectId, locations).then(() => {}),
+            `geofence update ${objectId}`,
+            err.message,
+          );
+          enqueued++;
+        }
       }
     }
 
@@ -142,9 +188,25 @@ export function adminRoutes(client: GoogleWalletClient) {
       total: passObjectIds.length,
       succeeded,
       failed,
+      enqueuedForRetry: enqueued,
       locationCount: locations.length,
       results,
     });
+  });
+
+  // ─── RECOVERY STATUS ──────────────────────────────────────
+
+  // View retry queue status.
+  r.get("/recovery/status", (_req, res) => {
+    if (!retryQueue) return res.json({ retryQueue: "disabled" });
+    return res.json({ retryQueue: retryQueue.status() });
+  });
+
+  // Manually trigger retry queue processing.
+  r.post("/recovery/retry-now", async (_req, res) => {
+    if (!retryQueue) return res.json({ retryQueue: "disabled" });
+    const result = await retryQueue.processQueue();
+    return res.json({ status: "processed", ...result });
   });
 
   return r;
